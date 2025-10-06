@@ -148,14 +148,16 @@ jobs:
           run: |
             helm upgrade --install redis-cluster ot-helm/redis-cluster \
               --set "redisCluster.clusterSize=1" \
+              --set "redisCluster.leader.replicas=1" \
+              --set "redisCluster.follower.replicas=1" \
               --set "redisCluster.redisSecret.secretName=devops-db-secret" \
               --set "redisCluster.redisSecret.secretKey=pass" \
               --set "redisCluster.resources.requests.cpu=100m" \
               --set "redisCluster.resources.requests.memory=128Mi" \
               --set "redisCluster.resources.limits.cpu=200m" \
               --set "redisCluster.resources.limits.memory=256Mi" \
-              --set "redisCluster.leader.nodeSelector.service=\"true\"" \
-              --set "redisCluster.follower.nodeSelector.service=\"true\"" \
+              --set-string "redisCluster.leader.nodeSelector.service=true" \
+              --set-string "redisCluster.follower.nodeSelector.service=true" \
               --namespace test
 
         - name: Deploy Application

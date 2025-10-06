@@ -91,8 +91,8 @@ diagnosticMode:
   command: ["sleep"]
   args: ["infinity"]
 
-defaultImage: ghcr.io/chabanyknikita/devops-test
-defaultImageTag: f51ef2edb8788e71222fe76d8ef1b398a1972e73
+defaultImage: ""
+defaultImageTag: ""
 defaultImagePullPolicy: "IfNotPresent"
 
 ingresses: 
