@@ -18,7 +18,7 @@ spec:
                 - test
       verifyImages:
         - imageReferences:
-            - "ghcr.io/chabanyknikita/devops-test"
+            - "ghcr.io/chabanyknikita/devops-test:*"
           failureAction: Enforce
           attestors:
             - entries:

@@ -110,6 +110,9 @@ jobs:
             token: ${{ secrets.GITHUB_TOKEN }}
           id: install
 
+        - name: Setup kubectl
+          uses: azure/setup-kubectl@v3
+
         - name: Set up Kubeconfig
           run: |
             echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > $HOME/.kube/config
