@@ -6,7 +6,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: redis
+      cluster: redis-cluster
   policyTypes:
     - Ingress
     - Egress

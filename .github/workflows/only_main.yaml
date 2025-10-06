@@ -161,8 +161,8 @@ jobs:
 
         - name: Deploy Application
           run: |
-            helm upgrade -i devops helm \
-              --values helm/values.yaml \
+            helm upgrade -i devops infrastructure/helm \
+              --values infrastructure/helm/values.yaml \
               --set-string "defaultImage=ghcr.io/${GITHUB_REPOSITORY}" \
               --set-string "defaultImageTag=${GITHUB_SHA}" \
               --namespace test \
