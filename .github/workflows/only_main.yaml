@@ -117,7 +117,6 @@ jobs:
           run: |
             mkdir -p $HOME/.kube
             echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > $HOME/.kube/config
-            cat $HOME/.kube/config
 
         - name: Add Helm Repo
           run: |
@@ -162,4 +161,9 @@ jobs:
 
         - name: Deploy Application
           run: |
-            helm upgrade -i "devops" "infrastructure/helm" --values "infrastructure/helm/values.yaml" --set "defaultImage=ghcr.io/${GITHUB_REPOSITORY}" --set "defaultImageTagg=${GITHUB_SHA}"  --namespace test --create-namespace
+            helm upgrade -i devops helm \
+              --values helm/values.yaml \
+              --set-string "defaultImage=ghcr.io/${GITHUB_REPOSITORY}" \
+              --set-string "defaultImageTag=${GITHUB_SHA}" \
+              --namespace test \
+              --create-namespace
