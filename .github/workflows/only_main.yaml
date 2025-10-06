@@ -119,6 +119,11 @@ jobs:
             echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > $HOME/.kube/config
             cat $HOME/.kube/config
 
+        - name: Add Helm Repo
+          run: |
+            helm repo add ot-helm https://ot-container-kit.github.io/helm-charts/
+            helm repo update
+
         - name: Create Namespace
           run: |
             kubectl create namespace test || echo "Namespace test already exists"
@@ -153,6 +158,6 @@ jobs:
               --set "redisCluster.follower.nodeSelector.service=\"true\"" \
               --namespace test
 
-        - name: Deploy to Cluster
+        - name: Deploy Application
           run: |
             helm upgrade -i "devops" "infrastructure/helm" --values "infrastructure/helm/values.yaml" --set "defaultImage=ghcr.io/${GITHUB_REPOSITORY}" --set "defaultImageTagg=${GITHUB_SHA}"  --namespace test --create-namespace
