@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: vault-secrets-operator-system
+  name: operator
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: test
+  name: demo-static-app
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: static-auth
+  namespace: test
+spec:
+  method: kubernetes
+  mount: test
+  kubernetes:
+    role: role1
+    serviceAccount: demo-static-app
+    audiences:
+      - vault
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: vault-kv-app
+  namespace: test
+spec:
+  type: kv-v2
+  mount: kvv2
+  path: test/secret
+  destination:
+    name: devops-db-secret
+    create: true
+  refreshAfter: 30s
+  vaultAuthRef: static-auth

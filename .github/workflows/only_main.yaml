@@ -45,3 +45,103 @@ jobs:
         env:
           IMAGE: ghcr.io/${{ github.repository }}:${{ github.sha }}
         run: buildah push $IMAGE
+
+  security_scan:
+      name: Security Scan
+      needs: converge
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v3
+          with:
+            fetch-depth: 0  
+
+        - name: Run Trivy vulnerability scanner
+          uses: aquasecurity/trivy-action@0.28.0
+          with:
+            image-ref: 'ghcr.io/${{ github.repository }}:${{ github.sha }}'
+            format: 'table'
+            exit-code: '1'
+            ignore-unfixed: true
+            vuln-type: 'os,library'
+            severity: 'CRITICAL,HIGH'
+
+  sign-image:
+      name: Sign Image
+      needs: [converge, security_scan]
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v3
+          with:
+            fetch-depth: 0  
+
+        - name: Install Cosign
+          uses: sigstore/cosign-installer@v3.10.0
+
+        - name: Sign image with a key
+          run: |
+            echo $COSIGN_PRIVATE_KEY | base64 -d > cosign.key
+            cosign sign --yes --key cosign.key ${IMAGE}
+          env:
+            IMAGE: ghcr.io/${{ github.repository }}:${{ github.sha }}
+            COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+
+  deploy:
+      name: Deploy
+      needs: sign-image
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v3
+          with:
+            fetch-depth: 0
+
+        - name: Install Helm
+          uses: azure/setup-helm@v3
+          with:
+            token: ${{ secrets.GITHUB_TOKEN }}
+          id: install
+
+        - name: Set up Kubeconfig
+          run: |
+            echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > $HOME/.kube/config
+            cat $HOME/.kube/config
+
+        - name: Create Namespace
+          run: |
+            kubectl create namespace test || echo "Namespace test already exists"
+
+        - name: Deploy Auto-Scaler
+          run: |
+            kubectl apply -f infrastructure/manifests/auto-scaler.yaml
+
+        - name: Deploy Kyverno Policies
+          run: |
+            kubectl apply -f infrastructure/manifests/kyverno.yaml
+
+        - name: Deploy Network Policies
+          run: |
+            kubectl apply -f infrastructure/manifests/network-policy.yaml
+
+        - name: Configure Vault Secret Operator
+          run: |
+            kubectl apply -f infrastructure/manifests/vault.yaml
+
+        - name: Deploy Redis
+          run: |
+            helm upgrade --install redis-cluster ot-helm/redis-cluster \
+              --set "redisCluster.clusterSize=1" \
+              --set "redisCluster.redisSecret.secretName=devops-db-secret" \
+              --set "redisCluster.redisSecret.secretKey=pass" \
+              --set "redisCluster.resources.requests.cpu=100m" \
+              --set "redisCluster.resources.requests.memory=128Mi" \
+              --set "redisCluster.resources.limits.cpu=200m" \
+              --set "redisCluster.resources.limits.memory=256Mi" \
+              --set "redisCluster.leader.nodeSelector.service=\"true\"" \
+              --set "redisCluster.follower.nodeSelector.service=\"true\"" \
+              --namespace test
+
+        - name: Deploy to Cluster
+          run: |
+            helm upgrade -i "devops" "infrastructure/helm" --values "infrastructure/helm/values.yaml" --set "defaultImage=ghcr.io/${GITHUB_REPOSITORY}" --set "defaultImageTagg=${GITHUB_SHA}"  --namespace test --create-namespace
