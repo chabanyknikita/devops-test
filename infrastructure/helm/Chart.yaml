@@ -1,0 +1,4 @@
+apiVersion: v2
+description: NestJS Universal Helm Chart
+name: devops
+version: 2.8.1
